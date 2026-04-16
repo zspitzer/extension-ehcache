@@ -83,6 +83,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="ehcache" {
 		application action="update" name="ehcacheBasicTest" caches={
 			"ehcacheBasic": {
 				class: "org.lucee.extension.cache.eh.EHCache",
+				maven: "org.lucee:ehcache-extension:#server.system.environment.EXTENSION_VERSION ?: '3.0.0.0-SNAPSHOT'#",
 				storage: false,
 				custom: {
 					"eternal": "false",

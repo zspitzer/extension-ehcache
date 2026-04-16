@@ -12,3 +12,5 @@ target/*
 *.DS_Store
 .vscode/launch.json
 /test-output
+build/
+.flattened-pom.xml

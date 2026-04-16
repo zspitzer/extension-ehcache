@@ -4,120 +4,102 @@
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either 
+ * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public 
+ *
+ * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  **/
 package org.lucee.extension.cache.eh;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import lucee.commons.io.cache.Cache;
 import lucee.commons.io.cache.CacheEntry;
 import lucee.commons.io.cache.CachePro;
-import lucee.runtime.type.Struct;
 import lucee.runtime.config.Config;
-import net.sf.ehcache.Element;
-import net.sf.ehcache.config.CacheConfiguration;
 
 import org.lucee.extension.cache.CacheSupport;
-import org.lucee.extension.cache.eh.util.TypeUtil;
+import org.lucee.extension.cache.eh.LuceeExpiryPolicy.EntryMeta;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.commons.io.log.Log;
 
 public abstract class EHCacheSupport extends CacheSupport implements Cache {
-	
-	protected boolean isDistributed;
-	protected boolean isSerialized;
+
+	protected LuceeExpiryPolicy expiryPolicy;
+	protected boolean trackItemMetadata = true;
 	protected Log logger;
 
 	protected Log getLogger() {
-		return getLogger(null);
+		return getLogger( null );
 	}
 
-	protected Log getLogger(Config config) {
-		Log logger = (config==null?CFMLEngineFactory.getInstance().getThreadConfig():config).getLog("application");
-
-		// for some reason, setting the application log to "debug" does not always show
-		// the ehCache output, so when debugging code, we can just manually set the log
-		// to DEBUG mode to make sure we see the log output
-		// logger.setLogLevel(logger.LEVEL_DEBUG);
-
-		return logger;
+	protected Log getLogger( Config config ) {
+		return ( config == null ? CFMLEngineFactory.getInstance().getThreadConfig() : config ).getLog( "application" );
 	}
 
 	@Override
-	public boolean contains(String key) {
-		if(!getCache().isKeyInCache(key))return false;
-		return getCache().get(key)!=null;
-	}
-
-	@Override
-	public Struct getCustomInfo() {
-		
-		Struct info=super.getCustomInfo();
-		// custom
-		CacheConfiguration conf = getCache().getCacheConfiguration();
-		info.setEL("disk_expiry_thread_interval", Double.valueOf(conf.getDiskExpiryThreadIntervalSeconds()));
-		info.setEL("disk_spool_buffer_size", Double.valueOf(conf.getDiskSpoolBufferSizeMB()*1024*1024));
-		info.setEL("max_elements_in_memory", Double.valueOf(conf.getMaxElementsInMemory()));
-		info.setEL("max_elements_on_disk", Double.valueOf(conf.getMaxElementsOnDisk()));
-		info.setEL("time_to_idle", Double.valueOf(conf.getTimeToIdleSeconds()));
-		info.setEL("time_to_live", Double.valueOf(conf.getTimeToLiveSeconds()));
-		info.setEL("name", conf.getName());
-		return info;
+	public boolean contains( String key ) {
+		return getCache().containsKey( key );
 	}
 
 	@Override
 	public List<String> keys() {
-		return getCache().getKeysWithExpiryCheck();
+		List<String> keys = new ArrayList<>();
+		for ( org.ehcache.Cache.Entry<String, Object> entry : getCache() ) {
+			keys.add( entry.getKey() );
+		}
+		return keys;
 	}
-	
+
 	@Override
-	public void put(String key, Object value, Long idleTime, Long liveTime) {
-		boolean hasTime = idleTime!=null || liveTime!=null;
-		Integer idle = idleTime==null?null : Integer.valueOf( (int)(idleTime.longValue()/1000) );
-		Integer live = liveTime==null?null : Integer.valueOf( (int)(liveTime.longValue()/1000) );
+	public void put( String key, Object value, Long idleTime, Long liveTime ) {
+		// Register expiry info BEFORE cache.put() so getExpiryForCreation() can find it
+		if ( trackItemMetadata ) {
+			expiryPolicy.setEntryExpiry( key, idleTime, liveTime );
+		}
 
-		getLogger().debug("ehcache", "Putting " + key + " item into cache (serializing=" + isSerialized + ")...");
-		
-		if(hasTime)getCache().put(new Element(key, isSerialized?TypeUtil.toJVM(value):value ,false, idle, live));
-		else getCache().put(new Element(key, isSerialized?TypeUtil.toJVM(value):value));
+		try {
+			getCache().put( key, value );
+		}
+		catch ( Exception e ) {
+			// Clean up metadata if the put failed (e.g. serialization failure on disk tier)
+			if ( trackItemMetadata ) {
+				expiryPolicy.removeEntryExpiry( key );
+			}
+			throw new RuntimeException( "cache [" + key + "]: failed to store value of type [" + value.getClass().getName() + "]", e );
+		}
 	}
-
-
 
 	@Override
 	public CachePro decouple() {
 		// is already decoupled by default
 		return this;
 	}
-	
 
 	@Override
-	public CacheEntry getQuiet(String key, CacheEntry defaultValue){
+	public CacheEntry getQuiet( String key, CacheEntry defaultValue ) {
 		try {
-			return new EHCacheEntry(this,getCache().getQuiet(key));
-		} catch(Throwable t) {
-			if(t instanceof ThreadDeath) throw (ThreadDeath)t;
+			Object value = getCache().get( key );
+			if ( value == null ) return defaultValue;
+			EntryMeta meta = expiryPolicy.getEntryMeta( key );
+			return new EHCacheEntry( key, value, meta );
+		}
+		catch ( Throwable t ) {
+			if ( t instanceof ThreadDeath ) throw (ThreadDeath) t;
 			return defaultValue;
 		}
 	}
-	
-	@Override
-	public CacheEntry getQuiet(String key) {
-		return new EHCacheEntry(this,getCache().getQuiet(key));
-	}
 
-	protected abstract net.sf.ehcache.Cache getCache();
-	
-	
+	// getQuiet(String key) is inherited from CacheSupport — it delegates to
+	// getQuiet(key, null) and throws CacheException when the result is null.
+
+	protected abstract org.ehcache.Cache<String, Object> getCache();
 }

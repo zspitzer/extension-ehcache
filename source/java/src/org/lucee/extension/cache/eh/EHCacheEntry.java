@@ -4,17 +4,17 @@
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either 
+ * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public 
+ *
+ * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  **/
 package org.lucee.extension.cache.eh;
 
@@ -22,82 +22,74 @@ import java.util.Date;
 
 import lucee.commons.io.cache.CacheEntry;
 import lucee.runtime.type.Struct;
-import net.sf.ehcache.Element;
 
+import org.lucee.extension.cache.eh.LuceeExpiryPolicy.EntryMeta;
 import org.lucee.extension.cache.eh.util.CacheUtil;
-import org.lucee.extension.cache.eh.util.TypeUtil;
 
 public class EHCacheEntry implements CacheEntry {
 
-	private EHCacheSupport cache;
-	private Element element;
+	private final String key;
+	private final Object value;
+	private final EntryMeta meta;
 
-	public EHCacheEntry(EHCacheSupport cache,Element element) {
-		this.element=element;
-		this.cache=cache;
+	public EHCacheEntry( String key, Object value, EntryMeta meta ) {
+		this.key = key;
+		this.value = value;
+		this.meta = meta;
 	}
 
 	@Override
 	public Date created() {
-		return new Date(element.getCreationTime());
+		return meta != null ? new Date( meta.createdAt ) : null;
 	}
 
 	@Override
 	public Date lastHit() {
-		return new Date(element.getLastAccessTime());
+		return null;
 	}
 
 	@Override
 	public Date lastModified() {
-		long value = element.getLastUpdateTime();
-		if(value==0)return created();
-		return new Date(value); 
+		return meta != null ? new Date( meta.lastModified ) : created();
 	}
 
 	@Override
 	public int hitCount() {
-		return (int)element.getHitCount();
+		return -1;
 	}
 
 	@Override
 	public long idleTimeSpan() {
-		return element.getTimeToIdle()*1000;
+		return meta != null && meta.idleTimeMs != null ? meta.idleTimeMs : 0;
 	}
 
 	@Override
-	public long liveTimeSpan() { 
-		return element.getTimeToLive()*1000;
+	public long liveTimeSpan() {
+		return meta != null && meta.liveTimeMs != null ? meta.liveTimeMs : 0;
 	}
 
 	@Override
 	public long size() {
-		return element.getSerializedSize();
+		return 0;
 	}
 
 	@Override
 	public String getKey() {
-		return (String) element.getKey();
+		return key;
 	}
 
 	@Override
 	public Object getValue() {
-		return cache.isSerialized?TypeUtil.toCFML(element.getObjectValue()):element.getObjectValue();
+		return value;
 	}
-
-	public void setElement(Element element) {
-		this.element=element;
-	}
-	
 
 	@Override
 	public String toString() {
-		return CacheUtil.toString(this);
+		return CacheUtil.toString( this );
 	}
 
 	@Override
 	public Struct getCustomInfo() {
-		Struct info=CacheUtil.getInfo(this);
-		info.setEL("version", Double.valueOf(element.getVersion()));
-		return info;
+		return CacheUtil.getInfo( this );
 	}
 }

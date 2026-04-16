@@ -1,9 +1,7 @@
 component extends="org.lucee.cfml.test.LuceeTestCase" labels="ehcache" {
 
-	variables.hasPostgres = structCount( server.getDatasource( "postgres" ) ) > 0;
-
 	public function beforeAll() {
-		if ( variables.hasPostgres ) {
+		if ( !noPostgres() ) {
 			application action="update" name="ehcacheJDBCTest" datasource=server.getDatasource( "postgres" );
 			createCache();
 			cacheClear( "", "ehcacheJDBC" );
@@ -12,13 +10,13 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="ehcache" {
 	}
 
 	public function afterAll() {
-		if ( variables.hasPostgres ) {
+		if ( !noPostgres() ) {
 			cacheClear( "", "ehcacheJDBC" );
 			cacheClear( "", "ehcacheJDBCDisk" );
 		}
 	}
 
-	private boolean function noPostgres() { return !variables.hasPostgres; }
+	private boolean function noPostgres() { return structCount( server.getDatasource( "postgres" ) ) == 0; }
 
 	public function run( testResults, testBox ) {
 
@@ -49,7 +47,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="ehcache" {
 				expect( cached.recordCount ).toBe( 1 );
 			});
 
-			// LDEV-2911 original failure path — disk deserialization of JDBC types
+			// LDEV-2911 — disk deserialization needs PG driver on the deserializing classloader
 			it( title: "survives disk round-trip with jsonb", skip: noPostgres, body: function() {
 				cacheClear( "", "ehcacheJDBCDisk" );
 				var res = queryExecute( "SELECT '{""key"": ""value""}'::jsonb AS data" );
@@ -58,8 +56,9 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="ehcache" {
 				loop from="1" to="15" index="local.i" {
 					cachePut( "filler_#i#", "x", createTimespan( 0, 0, 5, 0 ), createTimespan( 0, 0, 5, 0 ), "ehcacheJDBCDisk" );
 				}
-				var cached = cacheGet( "pgDiskRT", "ehcacheJDBCDisk" );
-				expect( isQuery( cached ) ).toBeTrue();
+				local.cached = cacheGet( "pgDiskRT", "ehcacheJDBCDisk" );
+				expect( isNull( local.cached ) ).toBeFalse( "disk round-trip should return the cached value" );
+				expect( isQuery( local.cached ) ).toBeTrue();
 			});
 
 		});

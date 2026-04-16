@@ -1,247 +1,413 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://www.w3.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-    <groupId>org.lucee</groupId>
-    <artifactId>ehcache-extension</artifactId>
-    <version>2.10.0.39</version>
-    <packaging>pom</packaging>
-    <name>EHCache Extension</name>
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>org.lucee</groupId>
+	<artifactId>ehcache-extension</artifactId>
+	<version>3.10.8.0-SNAPSHOT</version>
+	<packaging>jar</packaging>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
-        <id>87FE44E5-179C-43A3-A87B3D38BEF4652E</id>
-        <bundlename>org.lucee.ehcache.extension</bundlename>
-        <class>org.lucee.extension.cache.eh.EHCache</class>
-        <luceeCoreVersion>7.0.0.110</luceeCoreVersion>
-        <releaseType>server</releaseType>
-        <label>EHCache Extension</label>
-        <release.url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</release.url>
-        <snapshot.url>https://oss.sonatype.org/content/repositories/snapshots/</snapshot.url>
-    </properties>
+	<name>EHCache Extension</name>
+	<description>Integrates EHCache 3 as a high-performance caching provider for Lucee Server</description>
+	<url>https://github.com/lucee/extension-ehcache</url>
 
-    <scm>
-        <url>https://github.com/lucee/extension-ehcache</url>
-        <connection>scm:git:git://github.com/lucee/extension-ehcache.git</connection>
-        <developerConnection>scm:git:git@github.com:lucee/extension-ehcache.git</developerConnection>
-        <tag>${project.version}</tag>
-    </scm>
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<maven.compiler.source>11</maven.compiler.source>
+		<maven.compiler.target>11</maven.compiler.target>
 
-    <licenses>
-        <license>
-            <name>The GNU Lesser General Public License, Version 2.1</name>
-            <url>http://www.gnu.org/licenses/lgpl-2.1.txt</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
+		<!-- Build timestamp for manifest -->
+		<maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
+		<build.timestamp>${maven.build.timestamp}</build.timestamp>
+	</properties>
 
-    <developers>
-        <developer>
-            <id>micstriit</id>
-            <name>Michael Offner</name>
-            <email>michael@lucee.org</email>
-            <organization>Lucee Association Switzerland</organization>
-            <organizationUrl>http://lucee.org</organizationUrl>
-            <roles>
-                <role>Project-Administrator</role>
-                <role>Developer</role>
-            </roles>
-            <timezone>+1</timezone>
-        </developer>
-    </developers>
+	<licenses>
+		<license>
+			<name>GNU Lesser General Public License, Version 2.1</name>
+			<url>http://www.gnu.org/licenses/lgpl-2.1.txt</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
 
-    <description>Integrates EHCache as a high-performance caching provider for Lucee Server. Enables distributed caching, disk persistence, session clustering, and advanced memory management for enterprise applications.</description>
-    <url>https://github.com/lucee/extension-ehcache</url>
+	<developers>
+		<developer>
+			<id>micstriit</id>
+			<name>Michael Offner</name>
+			<email>michael@lucee.org</email>
+			<organization>Lucee Association Switzerland</organization>
+			<organizationUrl>http://lucee.org</organizationUrl>
+			<roles>
+				<role>Project-Administrator</role>
+				<role>Developer</role>
+			</roles>
+			<timezone>+1</timezone>
+		</developer>
+		<developer>
+			<id>zspitzer</id>
+			<name>Zac Spitzer</name>
+			<email>zac@lucee.org</email>
+			<organization>Lucee Association Switzerland</organization>
+			<organizationUrl>http://lucee.org</organizationUrl>
+			<roles>
+				<role>Developer</role>
+			</roles>
+			<timezone>+11</timezone>
+		</developer>
+	</developers>
 
-    <profiles>
-        <profile>
-            <id>release-sign-artifacts</id>
-            <activation>
-                <property>
-                    <name>performRelease</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <!-- GPG sign -->
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-gpg-plugin</artifactId>
-                        <version>3.0.1</version>
-                        <executions>
-                            <execution>
-                                <id>sign-artifacts</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>sign</goal>
-                                </goals>
-                                <configuration>
-                                    <files>
-                                        <file>${project.build.directory}/${project.artifactId}-${project.version}.lex</file>
-                                    </files>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                      <groupId>org.apache.maven.plugins</groupId>
-                      <artifactId>maven-release-plugin</artifactId>
-                      <version>3.0.0</version>
-                      <configuration>
-                        <autoVersionSubmodules>true</autoVersionSubmodules>
-                        <useReleaseProfile>false</useReleaseProfile>
-                        <releaseProfiles>release</releaseProfiles>
-                        <goals>deploy</goals>
-                      </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
+	<scm>
+		<url>https://github.com/lucee/extension-ehcache</url>
+		<connection>scm:git:git://github.com/lucee/extension-ehcache.git</connection>
+		<developerConnection>scm:git:git@github.com:lucee/extension-ehcache.git</developerConnection>
+		<tag>${project.version}</tag>
+	</scm>
 
-    <build>
-        <plugins>
-            <!-- Antrun plugin to execute the Ant build -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <version>1.8</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                        <configuration>
-                            <target>
-                                <ant antfile="build.xml" target="clean">
-                                    <property name="bundleversion" value="${project.version}"/>
-                                    <property name="bundlename" value="${bundlename}"/>
-                                    <property name="class" value="${class}"/>
-                                    <property name="filename" value="${project.artifactId}"/>
-                                    <property name="groupId" value="${project.groupId}"/>
-                                    <property name="artifactId" value="${project.artifactId}"/>
-                                    <property name="id" value="${id}"/>
-                                    <property name="luceeCoreVersion" value="${luceeCoreVersion}"/>
-                                    <property name="releaseType" value="${releaseType}"/>
-                                    <property name="label" value="${label}"/>
-                                    <property name="description" value="${project.description}"/>
-                                    <property name="srcversion" value="${maven.compiler.source}"/>
-                                    <property name="trgversion" value="${maven.compiler.target}"/>
-                                
-</ant>
-                                <condition property="isSnapshot" value="true" else="false">
-                                    <matches string="${project.version}" pattern=".*-SNAPSHOT"/>
-                                </condition>
-                                <condition property="deploy.url" value="${snapshot.url}">
-                                    <istrue value="${isSnapshot}"/>
-                                </condition>
-                                <condition property="deploy.url" value="${release.url}">
-                                    <isfalse value="${isSnapshot}"/>
-                                </condition>
-                                <echo message="Deploying to URL: ${deploy.url}" />
-                            </target>
-                            <exportAntProperties>true</exportAntProperties>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+	<build>
+		<sourceDirectory>source/java/src</sourceDirectory>
 
-            <!-- Build Helper Plugin to attach additional artifacts -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.2.0</version>
-                <executions>
-                    <execution>
-                        <id>attach-artifacts</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>attach-artifact</goal>
-                        </goals>
-                        <configuration>
-                            <artifacts>
-                                <artifact>
-                                    <file>${project.build.directory}/${project.artifactId}-${project.version}.lex</file>
-                                    <type>lex</type>
-                                </artifact>
-                            </artifacts>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+		<resources>
+			<!-- Filter manifest template -->
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+				<targetPath>${project.build.directory}/extension-resources/META-INF</targetPath>
+				<includes>
+					<include>extension-manifest.txt</include>
+				</includes>
+			</resource>
+		</resources>
 
-            <!-- Clean plugin to remove extra folders -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-clean-plugin</artifactId>
-                <version>3.1.0</version>
-                <executions>
-                    <execution>
-                        <id>cleanup</id>
-                        <phase>post-package</phase>
-                        <goals>
-                            <goal>clean</goal>
-                        </goals>
-                        <configuration>
-                            <filesets>
-                                <fileset>
-                                    <directory>${project.build.directory}/antrun</directory>
-                                    <includes>
-                                        <include>**/*</include>
-                                    </includes>
-                                </fileset>
-                                <fileset>
-                                    <directory>${project.build.directory}/archive-tmp</directory>
-                                    <includes>
-                                        <include>**/*</include>
-                                    </includes>
-                                </fileset>
-                            </filesets>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+		<plugins>
+			<!-- Load properties from build.properties -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>properties-maven-plugin</artifactId>
+				<version>1.2.1</version>
+				<executions>
+					<execution>
+						<phase>initialize</phase>
+						<goals>
+							<goal>read-project-properties</goal>
+						</goals>
+						<configuration>
+							<files>
+								<file>${basedir}/build.properties</file>
+							</files>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 
-            <!-- Maven Deploy Plugin to deploy the .lex file -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-deploy-plugin</artifactId>
-                <version>3.0.0-M1</version>
-                <executions>
-                    <execution>
-                        <id>default-deploy</id>
-                        <phase>deploy</phase>
-                        <goals>
-                            <goal>deploy-file</goal>
-                        </goals>
-                        <configuration>
-                            <file>${project.build.directory}/${project.artifactId}-${project.version}.lex</file>
-                            <groupId>${project.groupId}</groupId>
-                            <artifactId>${project.artifactId}</artifactId>
-                            <version>${project.version}</version>
-                            <repositoryId>ossrh</repositoryId>
-                            <url>${deploy.url}</url>
-                            <packaging>lex</packaging>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.15.0</version>
+				<configuration>
+					<source>11</source>
+					<target>11</target>
+				</configuration>
+			</plugin>
 
-            <!-- Nexus Staging Maven Plugin to automate the release process -->
-            <plugin>
-              <groupId>org.sonatype.central</groupId>
-              <artifactId>central-publishing-maven-plugin</artifactId>
-              <version>0.8.0</version>
-              <extensions>true</extensions>
-              <configuration>
-                <publishingServerId>ossrh</publishingServerId>
-                <autoPublish>true</autoPublish>
-              </configuration>
-            </plugin>
-        </plugins>
-    </build>
+			<!-- Copy dependencies in Maven repo layout for embedding in .lex -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<version>3.10.0</version>
+				<executions>
+					<execution>
+						<id>copy-dependencies</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>copy-dependencies</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${project.build.directory}/maven-repo</outputDirectory>
+							<useRepositoryLayout>true</useRepositoryLayout>
+							<copyPom>true</copyPom>
+							<excludeScope>provided</excludeScope>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Patch embedded ehcache pom: mark jaxb-runtime as optional.
+				 Lucee's runtime Maven resolver doesn't support <exclusions>,
+				 but it does skip <optional>true</optional> transitive deps.
+				 We don't use XML config so JAXB is not needed. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>3.1.0</version>
+				<executions>
+					<execution>
+						<id>patch-ehcache-pom</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>run</goal>
+						</goals>
+						<configuration>
+							<target>
+								<replaceregexp
+									file="${project.build.directory}/maven-repo/org/ehcache/ehcache/3.10.8/ehcache-3.10.8.pom"
+									match="(&lt;artifactId&gt;jaxb-runtime&lt;/artifactId&gt;)"
+									replace="\1${line.separator}      &lt;optional&gt;true&lt;/optional&gt;"
+								/>
+							</target>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Copy extension JAR into maven repo layout -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>3.1.0</version>
+				<executions>
+					<execution>
+						<id>copy-extension-jar</id>
+						<phase>package</phase>
+						<goals>
+							<goal>run</goal>
+						</goals>
+						<configuration>
+							<target>
+								<mkdir dir="${project.build.directory}/maven-repo/org/lucee/${project.artifactId}/${project.version}" />
+								<copy file="${project.build.directory}/${project.artifactId}-${project.version}.jar"
+									  todir="${project.build.directory}/maven-repo/org/lucee/${project.artifactId}/${project.version}" />
+								<copy file="${basedir}/.flattened-pom.xml"
+									  tofile="${project.build.directory}/maven-repo/org/lucee/${project.artifactId}/${project.version}/${project.artifactId}-${project.version}.pom" />
+							</target>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Plain JAR (no OSGi headers needed for maven classloading) -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>3.5.0</version>
+			</plugin>
+
+			<!-- Assemble .lex extension package -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<version>3.8.0</version>
+				<executions>
+					<execution>
+						<id>create-lex</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+						<configuration>
+							<descriptors>
+								<descriptor>src/assembly/lex.xml</descriptor>
+							</descriptors>
+							<finalName>${project.artifactId}-${project.version}</finalName>
+							<appendAssemblyId>false</appendAssemblyId>
+							<attach>false</attach>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Copy/rename resources and .lex file -->
+			<plugin>
+				<groupId>com.coderplus.maven.plugins</groupId>
+				<artifactId>copy-rename-maven-plugin</artifactId>
+				<version>1.0.1</version>
+				<executions>
+					<execution>
+						<id>rename-manifest</id>
+						<phase>process-resources</phase>
+						<goals>
+							<goal>rename</goal>
+						</goals>
+						<configuration>
+							<sourceFile>${project.build.directory}/extension-resources/META-INF/extension-manifest.txt</sourceFile>
+							<destinationFile>${project.build.directory}/extension-resources/META-INF/MANIFEST.MF</destinationFile>
+						</configuration>
+					</execution>
+					<execution>
+						<id>rename-lex</id>
+						<phase>package</phase>
+						<goals>
+							<goal>rename</goal>
+						</goals>
+						<configuration>
+							<sourceFile>${project.build.directory}/${project.artifactId}-${project.version}.zip</sourceFile>
+							<destinationFile>${project.build.directory}/${project.artifactId}-${project.version}.lex</destinationFile>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Attach .lex as a Maven artifact -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>3.6.0</version>
+				<executions>
+					<execution>
+						<id>attach-lex</id>
+						<phase>package</phase>
+						<goals>
+							<goal>attach-artifact</goal>
+						</goals>
+						<configuration>
+							<artifacts>
+								<artifact>
+									<file>${project.build.directory}/${project.artifactId}-${project.version}.lex</file>
+									<type>lex</type>
+								</artifact>
+							</artifacts>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Source JAR -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<version>3.4.0</version>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar-no-fork</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Javadoc JAR -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>3.12.0</version>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<source>11</source>
+					<doclint>none</doclint>
+				</configuration>
+			</plugin>
+
+			<!-- Flatten POM for publishing -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>flatten-maven-plugin</artifactId>
+				<version>1.7.0</version>
+				<configuration>
+					<updatePomFile>true</updatePomFile>
+					<flattenMode>oss</flattenMode>
+				</configuration>
+				<executions>
+					<execution>
+						<id>flatten</id>
+						<phase>process-resources</phase>
+						<goals>
+							<goal>flatten</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>flatten.clean</id>
+						<phase>clean</phase>
+						<goals>
+							<goal>clean</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Central Publishing -->
+			<plugin>
+				<groupId>org.sonatype.central</groupId>
+				<artifactId>central-publishing-maven-plugin</artifactId>
+				<version>0.10.0</version>
+				<extensions>true</extensions>
+				<configuration>
+					<publishingServerId>ossrh</publishingServerId>
+					<autoPublish>true</autoPublish>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+	<dependencies>
+		<!-- EHCache 3 -->
+		<dependency>
+			<groupId>org.ehcache</groupId>
+			<artifactId>ehcache</artifactId>
+			<version>3.10.8</version>
+			<exclusions>
+				<!-- We use programmatic config, not XML — exclude JAXB chain
+					 (references dead http://maven.java.net repos) -->
+				<exclusion>
+					<groupId>org.glassfish.jaxb</groupId>
+					<artifactId>jaxb-runtime</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+		<!-- Lucee (provided - not bundled) -->
+		<dependency>
+			<groupId>org.lucee</groupId>
+			<artifactId>lucee</artifactId>
+			<version>7.0.2.106</version>
+			<scope>provided</scope>
+		</dependency>
+	</dependencies>
+
+	<repositories>
+		<repository>
+			<id>sonatype-central-snapshots</id>
+			<name>Sonatype Central Snapshots</name>
+			<url>https://central.sonatype.com/repository/maven-snapshots</url>
+			<snapshots>
+				<enabled>true</enabled>
+				<updatePolicy>always</updatePolicy>
+			</snapshots>
+		</repository>
+	</repositories>
+
+	<profiles>
+		<profile>
+			<id>release-sign-artifacts</id>
+			<activation>
+				<property>
+					<name>performRelease</name>
+					<value>true</value>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>3.2.8</version>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>
