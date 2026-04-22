@@ -397,6 +397,15 @@
 			</exclusions>
 		</dependency>
 
+		<!-- SLF4J no-op binding: silences the "no StaticLoggerBinder" warning.
+			 Lucee ships slf4j.nop as an OSGi bundle but it isn't visible to
+			 the extension's maven-isolated classloader, so we bundle it here. -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-nop</artifactId>
+			<version>1.7.36</version>
+		</dependency>
+
 		<!-- Lucee (provided - not bundled) -->
 		<dependency>
 			<groupId>org.lucee</groupId>

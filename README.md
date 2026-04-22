@@ -4,7 +4,7 @@
 
 Cache provider for Lucee using [Ehcache 3](https://www.ehcache.org/). Supports heap and disk tiers, per-entry TTL, eviction policies, and disk persistence.
 
-**Requires Lucee 7.0+** — uses maven-based classloading.
+**Requires Lucee 7.0.4.21 or 7.1+** — uses maven-based classloading for cache classes ([LDEV-6270](https://luceeserver.atlassian.net/browse/LDEV-6270)).
 
 ## Installation
 

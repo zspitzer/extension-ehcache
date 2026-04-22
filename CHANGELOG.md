@@ -8,7 +8,7 @@ Major rewrite — ehcache 2 to ehcache 3, Maven-native build, Lucee 7+ only.
 
 ### Breaking changes
 
-- **Requires Lucee 7.0+** — uses Maven classloading (`start-bundles: false`), no OSGi bundles
+- **Requires Lucee 7.0.4.21 / 7.1+** — uses Maven classloading for cache classes via the `maven:` manifest attribute. The maven cache provider support shipped in 7.1 and was backported to 7.0.4.21 ([LDEV-6270](https://luceeserver.atlassian.net/browse/LDEV-6270)).
 - **RMI distribution removed** — ehcache 3 dropped built-in RMI. All distributed config fields
   (automatic/manual discovery, listener, bootstrap, replication) are gone. Use the Redis cache
   extension for distributed caching.
