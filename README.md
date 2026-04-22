@@ -53,6 +53,33 @@ result = cacheGet( "key", "myCache" );
 | `diskpersistent` | `true` | Persist disk tier across restarts |
 | `diskSizeMB` | `100` | Max disk tier size in MB |
 | `trackItemMetadata` | `true` | Track per-entry creation time and timespans |
+| `reportStatistics` | `false` | Include cache statistics in `cacheGetMetadata().custom` |
+
+### Statistics
+
+Set `reportStatistics` to `true` to include cache-level statistics in `cacheGetMetadata().custom`. Off by default — adds a struct allocation per `cacheGet()`.
+
+Statistics are always collected by ehcache's built-in statistics service regardless of this setting. This flag only controls whether they're included in metadata output. `hitCount()` and `missCount()` (visible as `cache_hitcount`/`cache_misscount` in metadata) are always available.
+
+| Key | Description |
+| --- | ----------- |
+| `hit_count` | Total cache hits (existing in v2) |
+| `miss_count` | Total cache misses (existing in v2) |
+| `get_count` | Total get operations (hits + misses) |
+| `put_count` | Total put operations |
+| `remove_count` | Total explicit removals |
+| `eviction_count` | Entries evicted by capacity pressure |
+| `expiration_count` | Entries expired by TTL/TTI |
+| `hit_percentage` | Hit rate as a percentage (0-100) |
+| `miss_percentage` | Miss rate as a percentage (0-100) |
+
+Stats are cumulative — they survive `cacheClear()` and are not reset until the cache is re-initialised.
+
+```cfml
+var meta = cacheGetMetadata( "someKey", "myCache" );
+dump( meta.custom.hit_percentage );   // e.g. 96.15
+dump( meta.custom.eviction_count );   // e.g. 300
+```
 
 ### trackItemMetadata
 
@@ -77,7 +104,7 @@ This is a [deliberate design decision](https://github.com/ehcache/ehcache3/issue
 
 ## Technical Details
 
-Maven-based extension using embedded `/maven/` repo layout. Extension version tracks the core library (e.g. 3.10.8.0 bundles ehcache 3.10.8). Also includes javax.cache API 1.1.0 and SLF4J API 1.7.36.
+Maven-based extension using embedded `/maven/` repo layout. Extension version tracks the core library (e.g. 3.11.1.0 bundles ehcache 3.11.1). Also includes javax.cache API 1.1.0 and SLF4J API 1.7.36.
 
 ## Issues
 

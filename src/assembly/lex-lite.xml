@@ -1,0 +1,53 @@
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.2.0"
+		  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		  xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.2.0 http://maven.apache.org/xsd/assembly-2.2.0.xsd">
+	<id>lex-lite</id>
+	<formats>
+		<format>zip</format>
+	</formats>
+	<includeBaseDirectory>false</includeBaseDirectory>
+
+	<fileSets>
+		<!-- Logo -->
+		<fileSet>
+			<directory>${project.basedir}/source/images</directory>
+			<outputDirectory>META-INF</outputDirectory>
+			<includes>
+				<include>logo.png</include>
+			</includes>
+		</fileSet>
+		<!-- Embedded Maven repo: our extension JAR + POM, plus the ehcache
+			 JAR and its patched POM. The ehcache POM is patched at build
+			 time to mark jaxb-runtime as <optional>true</optional> (Lucee's
+			 maven resolver doesn't honour <exclusions>, and jaxb-runtime:2.2
+			 isn't on Central so a fresh fetch would fail) — we bundle the
+			 patched POM so the resolver reads our version, not Central's.
+			 All other transitive POMs are bundled so the resolver can walk
+			 them; their JARs (slf4j-api, etc.) are fetched from Central. -->
+		<fileSet>
+			<directory>${project.build.directory}/maven-repo</directory>
+			<outputDirectory>maven</outputDirectory>
+			<includes>
+				<include>org/lucee/**</include>
+				<include>org/ehcache/**</include>
+				<include>**/*.pom</include>
+			</includes>
+		</fileSet>
+		<!-- Admin driver CFC -->
+		<fileSet>
+			<directory>${project.basedir}/source/CFML/src</directory>
+			<outputDirectory>/</outputDirectory>
+			<includes>
+				<include>context/admin/cdriver/**</include>
+			</includes>
+		</fileSet>
+		<!-- Manifest -->
+		<fileSet>
+			<directory>${project.build.directory}/extension-resources/META-INF</directory>
+			<outputDirectory>META-INF</outputDirectory>
+			<includes>
+				<include>MANIFEST.MF</include>
+			</includes>
+		</fileSet>
+	</fileSets>
+</assembly>

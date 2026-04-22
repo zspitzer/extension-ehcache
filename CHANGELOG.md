@@ -2,7 +2,7 @@
 
 All notable changes to the Lucee EHCache Extension.
 
-## 3.10.8.0 (unreleased)
+## 3.11.1.0 (unreleased)
 
 Major rewrite — ehcache 2 to ehcache 3, Maven-native build, Lucee 7+ only.
 
@@ -21,7 +21,7 @@ Major rewrite — ehcache 2 to ehcache 3, Maven-native build, Lucee 7+ only.
 
 ### Added
 
-- ehcache 3.10.8 (was 2.10.9.2)
+- ehcache 3.11.1 (was 2.10.9.2)
 - Maven-native build system (replaces Ant + bundled JARs)
 - Per-entry TTL/TTI via custom `ExpiryPolicy` (preserves Lucee's `cachePut()` timeout behaviour)
 - Cache event listener for metadata sidecar cleanup on expiry/eviction/removal

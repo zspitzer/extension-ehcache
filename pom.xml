@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.lucee</groupId>
 	<artifactId>ehcache-extension</artifactId>
-	<version>3.10.8.0-SNAPSHOT</version>
+	<version>3.11.1.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>EHCache Extension</name>
@@ -19,6 +19,9 @@
 		<!-- Build timestamp for manifest -->
 		<maven.build.timestamp.format>yyyy-MM-dd HH:mm:ss</maven.build.timestamp.format>
 		<build.timestamp>${maven.build.timestamp}</build.timestamp>
+
+		<!-- Remove once Lucee maven resolver honours <exclusions> (LDEV-TBD) -->
+		<skipPomPatch>false</skipPomPatch>
 	</properties>
 
 	<licenses>
@@ -133,7 +136,9 @@
 			<!-- Patch embedded ehcache pom: mark jaxb-runtime as optional.
 				 Lucee's runtime Maven resolver doesn't support <exclusions>,
 				 but it does skip <optional>true</optional> transitive deps.
-				 We don't use XML config so JAXB is not needed. -->
+				 We don't use XML config so JAXB is not needed.
+				 Skip with -DskipPomPatch=true to test whether a Lucee build
+				 honours <exclusions> natively (see resolver-exclusions ticket). -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-antrun-plugin</artifactId>
@@ -146,9 +151,10 @@
 							<goal>run</goal>
 						</goals>
 						<configuration>
+							<skip>${skipPomPatch}</skip>
 							<target>
 								<replaceregexp
-									file="${project.build.directory}/maven-repo/org/ehcache/ehcache/3.10.8/ehcache-3.10.8.pom"
+									file="${project.build.directory}/maven-repo/org/ehcache/ehcache/3.11.1/ehcache-3.11.1.pom"
 									match="(&lt;artifactId&gt;jaxb-runtime&lt;/artifactId&gt;)"
 									replace="\1${line.separator}      &lt;optional&gt;true&lt;/optional&gt;"
 								/>
@@ -211,6 +217,21 @@
 							<attach>false</attach>
 						</configuration>
 					</execution>
+					<execution>
+						<id>create-lex-lite</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+						<configuration>
+							<descriptors>
+								<descriptor>src/assembly/lex-lite.xml</descriptor>
+							</descriptors>
+							<finalName>${project.artifactId}-${project.version}-lite</finalName>
+							<appendAssemblyId>false</appendAssemblyId>
+							<attach>false</attach>
+						</configuration>
+					</execution>
 				</executions>
 			</plugin>
 
@@ -242,6 +263,17 @@
 							<destinationFile>${project.build.directory}/${project.artifactId}-${project.version}.lex</destinationFile>
 						</configuration>
 					</execution>
+					<execution>
+						<id>rename-lex-lite</id>
+						<phase>package</phase>
+						<goals>
+							<goal>rename</goal>
+						</goals>
+						<configuration>
+							<sourceFile>${project.build.directory}/${project.artifactId}-${project.version}-lite.zip</sourceFile>
+							<destinationFile>${project.build.directory}/${project.artifactId}-${project.version}.lite.lex</destinationFile>
+						</configuration>
+					</execution>
 				</executions>
 			</plugin>
 
@@ -262,6 +294,11 @@
 								<artifact>
 									<file>${project.build.directory}/${project.artifactId}-${project.version}.lex</file>
 									<type>lex</type>
+								</artifact>
+								<artifact>
+									<file>${project.build.directory}/${project.artifactId}-${project.version}.lite.lex</file>
+									<type>lex</type>
+									<classifier>lite</classifier>
 								</artifact>
 							</artifacts>
 						</configuration>
@@ -349,7 +386,7 @@
 		<dependency>
 			<groupId>org.ehcache</groupId>
 			<artifactId>ehcache</artifactId>
-			<version>3.10.8</version>
+			<version>3.11.1</version>
 			<exclusions>
 				<!-- We use programmatic config, not XML — exclude JAXB chain
 					 (references dead http://maven.java.net repos) -->
