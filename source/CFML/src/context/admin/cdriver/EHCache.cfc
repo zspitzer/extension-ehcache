@@ -17,17 +17,17 @@
 
 
 	<cffunction name="getClass" returntype="string">
-		<cfreturn "{class}">
+		<cfreturn "${cacheClass}">
 	</cffunction>
 	<cffunction name="getMaven" returntype="string">
-		<cfreturn "{maven}">
+		<cfreturn "${mavenCoords}">
 	</cffunction>
 
 	<cffunction name="getLabel" returntype="string">
-		<cfreturn "{label}">
+		<cfreturn "${label}">
 	</cffunction>
 	<cffunction name="getDescription" returntype="string" output="no">
-		<cfreturn "{desc}">
+		<cfreturn "${description}">
 	</cffunction>
 
 </cfcomponent>

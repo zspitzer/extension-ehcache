@@ -22,6 +22,10 @@
 
 		<!-- Remove once Lucee maven resolver honours <exclusions> (LDEV-TBD) -->
 		<skipPomPatch>false</skipPomPatch>
+
+		<!-- CFC template substitution -->
+		<cacheClass>org.lucee.extension.cache.eh.EHCache</cacheClass>
+		<mavenCoords>${project.groupId}:${project.artifactId}:${project.version}</mavenCoords>
 	</properties>
 
 	<licenses>
@@ -96,6 +100,31 @@
 							<files>
 								<file>${basedir}/build.properties</file>
 							</files>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Filter CFML sources — substitutes ${label}, ${description} etc into CFC files -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-resources-plugin</artifactId>
+				<version>3.3.1</version>
+				<executions>
+					<execution>
+						<id>filter-cfml</id>
+						<phase>process-resources</phase>
+						<goals>
+							<goal>copy-resources</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${project.build.directory}/filtered-cfml</outputDirectory>
+							<resources>
+								<resource>
+									<directory>${project.basedir}/source/CFML/src</directory>
+									<filtering>true</filtering>
+								</resource>
+							</resources>
 						</configuration>
 					</execution>
 				</executions>

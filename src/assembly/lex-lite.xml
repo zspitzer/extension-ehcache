@@ -33,9 +33,9 @@
 				<include>**/*.pom</include>
 			</includes>
 		</fileSet>
-		<!-- Admin driver CFC -->
+		<!-- Admin driver CFC (filtered — ${label} etc substituted by maven-resources-plugin) -->
 		<fileSet>
-			<directory>${project.basedir}/source/CFML/src</directory>
+			<directory>${project.build.directory}/filtered-cfml</directory>
 			<outputDirectory>/</outputDirectory>
 			<includes>
 				<include>context/admin/cdriver/**</include>
