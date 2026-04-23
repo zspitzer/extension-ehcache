@@ -7,4 +7,4 @@ description: "${description}"
 start-bundles: false
 release-type: ${releaseType}
 lucee-core-version: "${luceeCoreVersion}"
-cache: "[{'class':'org.lucee.extension.cache.eh.EHCache','maven':'${project.groupId}:${project.artifactId}:${project.version}'}]"
+cache: "[{'class':'org.lucee.extension.cache.eh.EHCache','maven':'${project.groupId}:${project.artifactId}:${project.version}','label':'${label}','description':'${description}'}]"
