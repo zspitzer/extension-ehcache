@@ -20,9 +20,10 @@ package org.lucee.extension.cache.eh;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
@@ -33,6 +34,10 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.internal.statistics.DefaultStatisticsService;
+import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.statistics.CacheStatistics;
+import org.ehcache.core.statistics.TierStatistics;
 import org.ehcache.event.EventType;
 
 import org.lucee.extension.cache.eh.LuceeExpiryPolicy.EntryMeta;
@@ -44,6 +49,7 @@ import lucee.commons.io.res.Resource;
 import lucee.loader.engine.CFMLEngine;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.runtime.config.Config;
+import lucee.runtime.type.Collection.Key;
 import lucee.runtime.type.Struct;
 import lucee.runtime.util.Cast;
 import lucee.runtime.util.Excepton;
@@ -57,15 +63,62 @@ public class EHCache extends EHCacheSupport {
 	private static final long TIME_TO_IDLE_SECONDS = 86400;
 	private static final long TIME_TO_LIVE_SECONDS = 86400;
 	private static final long DISK_SIZE_MB = 100;
+	private static final long OFFHEAP_SIZE_MB = 0;
+	private static final long HEAP_SIZE_MB = 0;
 	private static final boolean TRACK_METADATA = true;
+	private static final boolean REPORT_STATISTICS = false;
+	private static final boolean REPORT_TIER_STATISTICS = false;
+
+	// Pre-built Keys for struct writes — avoids string-to-Key conversion on every setEL
+	private static final Key KEY_HIT_COUNT;
+	private static final Key KEY_MISS_COUNT;
+	private static final Key KEY_GET_COUNT;
+	private static final Key KEY_PUT_COUNT;
+	private static final Key KEY_REMOVE_COUNT;
+	private static final Key KEY_EVICTION_COUNT;
+	private static final Key KEY_EXPIRATION_COUNT;
+	private static final Key KEY_HIT_PERCENTAGE;
+	private static final Key KEY_MISS_PERCENTAGE;
+	private static final Key KEY_TIERS;
+	private static final Key KEY_HITS;
+	private static final Key KEY_MISSES;
+	private static final Key KEY_PUTS;
+	private static final Key KEY_REMOVALS;
+	private static final Key KEY_EVICTIONS;
+	private static final Key KEY_EXPIRATIONS;
+	private static final Key KEY_MAPPINGS;
+	private static final Key KEY_ALLOCATED_BYTES;
+	private static final Key KEY_OCCUPIED_BYTES;
+	static {
+		lucee.runtime.util.Creation cu = CFMLEngineFactory.getInstance().getCreationUtil();
+		KEY_HIT_COUNT = cu.createKey( "hit_count" );
+		KEY_MISS_COUNT = cu.createKey( "miss_count" );
+		KEY_GET_COUNT = cu.createKey( "get_count" );
+		KEY_PUT_COUNT = cu.createKey( "put_count" );
+		KEY_REMOVE_COUNT = cu.createKey( "remove_count" );
+		KEY_EVICTION_COUNT = cu.createKey( "eviction_count" );
+		KEY_EXPIRATION_COUNT = cu.createKey( "expiration_count" );
+		KEY_HIT_PERCENTAGE = cu.createKey( "hit_percentage" );
+		KEY_MISS_PERCENTAGE = cu.createKey( "miss_percentage" );
+		KEY_TIERS = cu.createKey( "tiers" );
+		KEY_HITS = cu.createKey( "hits" );
+		KEY_MISSES = cu.createKey( "misses" );
+		KEY_PUTS = cu.createKey( "puts" );
+		KEY_REMOVALS = cu.createKey( "removals" );
+		KEY_EVICTIONS = cu.createKey( "evictions" );
+		KEY_EXPIRATIONS = cu.createKey( "expirations" );
+		KEY_MAPPINGS = cu.createKey( "mappings" );
+		KEY_ALLOCATED_BYTES = cu.createKey( "allocated_bytes" );
+		KEY_OCCUPIED_BYTES = cu.createKey( "occupied_bytes" );
+	}
 
 	// CacheManager pool: one per config directory
 	private static final ConcurrentHashMap<String, ManagedCacheManager> managers = new ConcurrentHashMap<>();
 
-	private final AtomicLong hits = new AtomicLong();
-	private final AtomicLong misses = new AtomicLong();
 	private String cacheName;
 	private boolean trackItemMetadata;
+	private boolean reportStatistics;
+	private boolean reportTierStatistics;
 	private ManagedCacheManager mcm;
 
 	public void init( String cacheName, Struct arguments ) throws IOException {
@@ -92,7 +145,11 @@ public class EHCache extends EHCacheSupport {
 		long timeToIdleSeconds = cast.toLongValue( arguments.get( "timeToIdleSeconds", TIME_TO_IDLE_SECONDS ), TIME_TO_IDLE_SECONDS );
 		long timeToLiveSeconds = cast.toLongValue( arguments.get( "timeToLiveSeconds", TIME_TO_LIVE_SECONDS ), TIME_TO_LIVE_SECONDS );
 		long diskSizeMB = cast.toLongValue( arguments.get( "diskSizeMB", DISK_SIZE_MB ), DISK_SIZE_MB );
+		long offheapSizeMB = cast.toLongValue( arguments.get( "offheapSizeMB", OFFHEAP_SIZE_MB ), OFFHEAP_SIZE_MB );
+		long heapSizeMB = cast.toLongValue( arguments.get( "heapSizeMB", HEAP_SIZE_MB ), HEAP_SIZE_MB );
 		this.trackItemMetadata = cast.toBooleanValue( arguments.get( "trackItemMetadata", Boolean.TRUE ), TRACK_METADATA );
+		this.reportStatistics = cast.toBooleanValue( arguments.get( "reportStatistics", Boolean.FALSE ), REPORT_STATISTICS );
+		this.reportTierStatistics = cast.toBooleanValue( arguments.get( "reportTierStatistics", Boolean.FALSE ), REPORT_TIER_STATISTICS );
 
 		// Backwards compat: estimate disk size from maxelementsondisk if diskSizeMB not set
 		if ( arguments.get( "diskSizeMB", null ) == null ) {
@@ -102,7 +159,9 @@ public class EHCache extends EHCacheSupport {
 			}
 		}
 
-		log.debug( "ehcache", "Initialising cache [" + label( cacheName ) + "] with ehcache 3 (heap=" + maxElementsInMemory
+		String heapDesc = heapSizeMB > 0 ? heapSizeMB + "MB" : maxElementsInMemory + " entries";
+		log.debug( "ehcache", "Initialising cache [" + label( cacheName ) + "] with ehcache 3 (heap=" + heapDesc
+				+ ( offheapSizeMB > 0 ? ", offheap=" + offheapSizeMB + "MB" : "" )
 				+ ", disk=" + ( overflowToDisk ? diskSizeMB + "MB" : "off" ) + ", eternal=" + eternal + ")" );
 
 		// Get or create CacheManager for this config directory
@@ -112,9 +171,18 @@ public class EHCache extends EHCacheSupport {
 		// Build the expiry policy
 		expiryPolicy = new LuceeExpiryPolicy( eternal, timeToLiveSeconds, timeToIdleSeconds );
 
-		// Build resource pools
-		ResourcePoolsBuilder pools = ResourcePoolsBuilder.newResourcePoolsBuilder()
-				.heap( maxElementsInMemory, EntryUnit.ENTRIES );
+		// Build resource pools — tiering order: heap > offheap > disk
+		ResourcePoolsBuilder pools = ResourcePoolsBuilder.newResourcePoolsBuilder();
+		if ( heapSizeMB > 0 ) {
+			pools = pools.heap( heapSizeMB, MemoryUnit.MB );
+		}
+		else {
+			pools = pools.heap( maxElementsInMemory, EntryUnit.ENTRIES );
+		}
+
+		if ( offheapSizeMB > 0 ) {
+			pools = pools.offheap( offheapSizeMB, MemoryUnit.MB );
+		}
 
 		if ( overflowToDisk && diskSizeMB > 0 ) {
 			pools = pools.disk( diskSizeMB, MemoryUnit.MB, diskPersistent );
@@ -186,12 +254,10 @@ public class EHCache extends EHCacheSupport {
 		try {
 			Object value = getCache().get( key );
 			if ( value == null ) {
-				misses.incrementAndGet();
 				throw new CacheException( "there is no entry in cache with key [" + key + "]" );
 			}
-			hits.incrementAndGet();
 			EntryMeta meta = expiryPolicy.getEntryMeta( key );
-			return new EHCacheEntry( key, value, meta );
+			return new EHCacheEntry( key, value, meta, reportStatistics ? buildCacheStats() : null );
 		}
 		catch ( CacheException ce ) {
 			throw ce;
@@ -206,27 +272,101 @@ public class EHCache extends EHCacheSupport {
 		try {
 			Object value = getCache().get( key );
 			if ( value != null ) {
-				hits.incrementAndGet();
 				EntryMeta meta = expiryPolicy.getEntryMeta( key );
-				return new EHCacheEntry( key, value, meta );
+				return new EHCacheEntry( key, value, meta, reportStatistics ? buildCacheStats() : null );
 			}
-			misses.incrementAndGet();
 		}
 		catch ( Throwable t ) {
 			if ( t instanceof ThreadDeath ) throw (ThreadDeath) t;
-			misses.incrementAndGet();
 		}
 		return defaultValue;
 	}
 
 	@Override
 	public long hitCount() {
-		return hits.get();
+		StatisticsService statsService = mcm.getStatisticsService();
+		if ( statsService != null ) {
+			try {
+				return statsService.getCacheStatistics( cacheName ).getCacheHits();
+			}
+			catch ( IllegalArgumentException e ) { /* cache not yet registered */ }
+		}
+		return 0;
 	}
 
 	@Override
 	public long missCount() {
-		return misses.get();
+		StatisticsService statsService = mcm.getStatisticsService();
+		if ( statsService != null ) {
+			try {
+				return statsService.getCacheStatistics( cacheName ).getCacheMisses();
+			}
+			catch ( IllegalArgumentException e ) { /* cache not yet registered */ }
+		}
+		return 0;
+	}
+
+	@Override
+	public Struct getCustomInfo() {
+		Struct info = super.getCustomInfo();
+		Struct stats = buildCacheStats();
+		if ( stats != null ) {
+			Iterator<Key> it = stats.keyIterator();
+			while ( it.hasNext() ) {
+				Key k = it.next();
+				info.setEL( k, stats.get( k, null ) );
+			}
+		}
+		return info;
+	}
+
+	private Struct buildCacheStats() {
+		StatisticsService statsService = mcm.getStatisticsService();
+		if ( statsService == null ) return null;
+		try {
+			CacheStatistics stats = statsService.getCacheStatistics( cacheName );
+			Struct info = CFMLEngineFactory.getInstance().getCreationUtil().createStruct();
+			info.setEL( KEY_HIT_COUNT, Double.valueOf( stats.getCacheHits() ) );
+			info.setEL( KEY_MISS_COUNT, Double.valueOf( stats.getCacheMisses() ) );
+			info.setEL( KEY_GET_COUNT, Double.valueOf( stats.getCacheGets() ) );
+			info.setEL( KEY_PUT_COUNT, Double.valueOf( stats.getCachePuts() ) );
+			info.setEL( KEY_REMOVE_COUNT, Double.valueOf( stats.getCacheRemovals() ) );
+			info.setEL( KEY_EVICTION_COUNT, Double.valueOf( stats.getCacheEvictions() ) );
+			info.setEL( KEY_EXPIRATION_COUNT, Double.valueOf( stats.getCacheExpirations() ) );
+			info.setEL( KEY_HIT_PERCENTAGE, Double.valueOf( stats.getCacheHitPercentage() ) );
+			info.setEL( KEY_MISS_PERCENTAGE, Double.valueOf( stats.getCacheMissPercentage() ) );
+			if ( reportTierStatistics ) {
+				Struct tiers = buildTierStats( stats );
+				if ( tiers != null ) info.setEL( KEY_TIERS, tiers );
+			}
+			return info;
+		}
+		catch ( IllegalArgumentException e ) {
+			return null;
+		}
+	}
+
+	private Struct buildTierStats( CacheStatistics stats ) {
+		Map<String, TierStatistics> tierMap = stats.getTierStatistics();
+		if ( tierMap == null || tierMap.isEmpty() ) return null;
+		Struct out = CFMLEngineFactory.getInstance().getCreationUtil().createStruct();
+		for ( Map.Entry<String, TierStatistics> e : tierMap.entrySet() ) {
+			TierStatistics t = e.getValue();
+			Struct tier = CFMLEngineFactory.getInstance().getCreationUtil().createStruct();
+			tier.setEL( KEY_HITS, Double.valueOf( t.getHits() ) );
+			tier.setEL( KEY_MISSES, Double.valueOf( t.getMisses() ) );
+			tier.setEL( KEY_PUTS, Double.valueOf( t.getPuts() ) );
+			tier.setEL( KEY_REMOVALS, Double.valueOf( t.getRemovals() ) );
+			tier.setEL( KEY_EVICTIONS, Double.valueOf( t.getEvictions() ) );
+			tier.setEL( KEY_EXPIRATIONS, Double.valueOf( t.getExpirations() ) );
+			tier.setEL( KEY_MAPPINGS, Double.valueOf( t.getMappings() ) );
+			long alloc = t.getAllocatedByteSize();
+			long occ = t.getOccupiedByteSize();
+			if ( alloc >= 0 ) tier.setEL( KEY_ALLOCATED_BYTES, Double.valueOf( alloc ) );
+			if ( occ >= 0 ) tier.setEL( KEY_OCCUPIED_BYTES, Double.valueOf( occ ) );
+			out.setEL( e.getKey(), tier );
+		}
+		return out;
 	}
 
 	@Override
@@ -264,20 +404,33 @@ public class EHCache extends EHCacheSupport {
 class ManagedCacheManager {
 
 	private final String diskPath;
-	private CacheManager manager;
+	private volatile CacheManager manager;
+	private volatile StatisticsService statisticsService;
 	private final AtomicInteger refCount = new AtomicInteger( 0 );
 
 	ManagedCacheManager( String diskPath ) {
 		this.diskPath = diskPath;
 	}
 
-	synchronized CacheManager getOrCreate() {
+	CacheManager getOrCreate() {
+		CacheManager m = manager;
+		if ( m != null && m.getStatus() == Status.AVAILABLE ) return m;
+		return createOrRebuild();
+	}
+
+	private synchronized CacheManager createOrRebuild() {
 		if ( manager == null || manager.getStatus() != Status.AVAILABLE ) {
+			statisticsService = new DefaultStatisticsService();
 			manager = CacheManagerBuilder.newCacheManagerBuilder()
+					.using( statisticsService )
 					.with( CacheManagerBuilder.persistence( new File( diskPath ) ) )
 					.build( true );
 		}
 		return manager;
+	}
+
+	StatisticsService getStatisticsService() {
+		return statisticsService;
 	}
 
 	void addRef() {

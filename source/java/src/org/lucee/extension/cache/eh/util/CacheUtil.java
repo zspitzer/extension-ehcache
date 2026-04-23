@@ -24,24 +24,48 @@ import lucee.commons.io.cache.Cache;
 import lucee.commons.io.cache.CacheEntry;
 import lucee.commons.io.cache.CacheFilter;
 import lucee.loader.engine.CFMLEngineFactory;
+import lucee.runtime.type.Collection.Key;
 import lucee.runtime.type.Struct;
 import lucee.runtime.type.dt.TimeSpan;
 
 public class CacheUtil {
 
+	// Pre-built Keys for struct writes — avoids string-to-Key conversion on every setEL
+	private static final Key KEY_KEY;
+	private static final Key KEY_CREATED;
+	private static final Key KEY_LAST_HIT;
+	private static final Key KEY_LAST_MODIFIED;
+	private static final Key KEY_HIT_COUNT;
+	private static final Key KEY_MISS_COUNT;
+	private static final Key KEY_SIZE;
+	private static final Key KEY_IDLE_TIME_SPAN;
+	private static final Key KEY_LIVE_TIME_SPAN;
+	static {
+		lucee.runtime.util.Creation cu = CFMLEngineFactory.getInstance().getCreationUtil();
+		KEY_KEY = cu.createKey("key");
+		KEY_CREATED = cu.createKey("created");
+		KEY_LAST_HIT = cu.createKey("last_hit");
+		KEY_LAST_MODIFIED = cu.createKey("last_modified");
+		KEY_HIT_COUNT = cu.createKey("hit_count");
+		KEY_MISS_COUNT = cu.createKey("miss_count");
+		KEY_SIZE = cu.createKey("size");
+		KEY_IDLE_TIME_SPAN = cu.createKey("idle_time_span");
+		KEY_LIVE_TIME_SPAN = cu.createKey("live_time_span");
+	}
+
 	public static Struct getInfo(CacheEntry ce) {
 		Struct info=CFMLEngineFactory.getInstance().getCreationUtil().createStruct();
-		info.setEL("key", ce.getKey());
-		info.setEL("created", ce.created());
-		info.setEL("last_hit", ce.lastHit());
-		info.setEL("last_modified", ce.lastModified());
+		info.setEL(KEY_KEY, ce.getKey());
+		info.setEL(KEY_CREATED, ce.created());
+		info.setEL(KEY_LAST_HIT, ce.lastHit());
+		info.setEL(KEY_LAST_MODIFIED, ce.lastModified());
 
-		info.setEL("hit_count", Double.valueOf(ce.hitCount()));
-		info.setEL("size", Double.valueOf(ce.size()));
+		info.setEL(KEY_HIT_COUNT, Double.valueOf(ce.hitCount()));
+		info.setEL(KEY_SIZE, Double.valueOf(ce.size()));
 
 
-		info.setEL("idle_time_span", toTimespan(ce.idleTimeSpan()));
-		info.setEL("live_time_span", toTimespan(ce.liveTimeSpan()));
+		info.setEL(KEY_IDLE_TIME_SPAN, toTimespan(ce.idleTimeSpan()));
+		info.setEL(KEY_LIVE_TIME_SPAN, toTimespan(ce.liveTimeSpan()));
 
 
 		return info;
@@ -52,7 +76,7 @@ public class CacheUtil {
 		Struct info=CFMLEngineFactory.getInstance().getCreationUtil().createStruct();
 		try{
 			long value = c.hitCount();
-			if(value>=0)info.setEL("hit_count", Double.valueOf(value));
+			if(value>=0)info.setEL(KEY_HIT_COUNT, Double.valueOf(value));
 		}
 		catch(IOException ioe){
 			// simply ignore
@@ -60,7 +84,7 @@ public class CacheUtil {
 
 		try{
 			long value = c.missCount();
-			if(value>=0)info.setEL("miss_count", Double.valueOf(value));
+			if(value>=0)info.setEL(KEY_MISS_COUNT, Double.valueOf(value));
 		}
 		catch(IOException ioe){
 			// simply ignore

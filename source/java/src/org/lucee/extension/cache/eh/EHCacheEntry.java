@@ -19,8 +19,10 @@
 package org.lucee.extension.cache.eh;
 
 import java.util.Date;
+import java.util.Iterator;
 
 import lucee.commons.io.cache.CacheEntry;
+import lucee.runtime.type.Collection.Key;
 import lucee.runtime.type.Struct;
 
 import org.lucee.extension.cache.eh.LuceeExpiryPolicy.EntryMeta;
@@ -31,11 +33,17 @@ public class EHCacheEntry implements CacheEntry {
 	private final String key;
 	private final Object value;
 	private final EntryMeta meta;
+	private final Struct cacheStats;
 
 	public EHCacheEntry( String key, Object value, EntryMeta meta ) {
+		this( key, value, meta, null );
+	}
+
+	public EHCacheEntry( String key, Object value, EntryMeta meta, Struct cacheStats ) {
 		this.key = key;
 		this.value = value;
 		this.meta = meta;
+		this.cacheStats = cacheStats;
 	}
 
 	@Override
@@ -90,6 +98,14 @@ public class EHCacheEntry implements CacheEntry {
 
 	@Override
 	public Struct getCustomInfo() {
-		return CacheUtil.getInfo( this );
+		Struct info = CacheUtil.getInfo( this );
+		if ( cacheStats != null ) {
+			Iterator<Key> it = cacheStats.keyIterator();
+			while ( it.hasNext() ) {
+				Key k = it.next();
+				info.setEL( k, cacheStats.get( k, null ) );
+			}
+		}
+		return info;
 	}
 }
