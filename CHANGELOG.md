@@ -27,7 +27,6 @@ Major rewrite — ehcache 2 to ehcache 3, Maven-native build.
 - Cache event listener for metadata sidecar cleanup on expiry/eviction/removal
 - Java 11 minimum (was 8)
 - Off-heap tier via `offheapSizeMB` — direct-memory tier between heap and disk, zero GC pressure
-- Heap tier can be sized in MB via `heapSizeMB` instead of entry count (better for variable-size entries)
 - Native ehcache statistics via `DefaultStatisticsService` — replaces manual AtomicLong counters
 - `reportStatistics` flag surfaces cache-wide stats (hit/miss/get/put/remove/eviction/expiration counts, hit/miss percentages) in `cacheGetMetadata().custom`
 - `reportTierStatistics` flag adds a nested `tiers` struct (per-tier OnHeap/OffHeap/Disk breakdown: hits, misses, puts, removals, evictions, expirations, mappings, allocated/occupied bytes)

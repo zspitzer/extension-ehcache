@@ -64,7 +64,6 @@ public class EHCache extends EHCacheSupport {
 	private static final long TIME_TO_LIVE_SECONDS = 86400;
 	private static final long DISK_SIZE_MB = 100;
 	private static final long OFFHEAP_SIZE_MB = 0;
-	private static final long HEAP_SIZE_MB = 0;
 	private static final boolean TRACK_METADATA = true;
 	private static final boolean REPORT_STATISTICS = false;
 	private static final boolean REPORT_TIER_STATISTICS = false;
@@ -146,7 +145,6 @@ public class EHCache extends EHCacheSupport {
 		long timeToLiveSeconds = cast.toLongValue( arguments.get( "timeToLiveSeconds", TIME_TO_LIVE_SECONDS ), TIME_TO_LIVE_SECONDS );
 		long diskSizeMB = cast.toLongValue( arguments.get( "diskSizeMB", DISK_SIZE_MB ), DISK_SIZE_MB );
 		long offheapSizeMB = cast.toLongValue( arguments.get( "offheapSizeMB", OFFHEAP_SIZE_MB ), OFFHEAP_SIZE_MB );
-		long heapSizeMB = cast.toLongValue( arguments.get( "heapSizeMB", HEAP_SIZE_MB ), HEAP_SIZE_MB );
 		this.trackItemMetadata = cast.toBooleanValue( arguments.get( "trackItemMetadata", Boolean.TRUE ), TRACK_METADATA );
 		this.reportStatistics = cast.toBooleanValue( arguments.get( "reportStatistics", Boolean.FALSE ), REPORT_STATISTICS );
 		this.reportTierStatistics = cast.toBooleanValue( arguments.get( "reportTierStatistics", Boolean.FALSE ), REPORT_TIER_STATISTICS );
@@ -159,8 +157,7 @@ public class EHCache extends EHCacheSupport {
 			}
 		}
 
-		String heapDesc = heapSizeMB > 0 ? heapSizeMB + "MB" : maxElementsInMemory + " entries";
-		log.debug( "ehcache", "Initialising cache [" + label( cacheName ) + "] with ehcache 3 (heap=" + heapDesc
+		log.debug( "ehcache", "Initialising cache [" + label( cacheName ) + "] with ehcache 3 (heap=" + maxElementsInMemory + " entries"
 				+ ( offheapSizeMB > 0 ? ", offheap=" + offheapSizeMB + "MB" : "" )
 				+ ", disk=" + ( overflowToDisk ? diskSizeMB + "MB" : "off" ) + ", eternal=" + eternal + ")" );
 
@@ -173,12 +170,7 @@ public class EHCache extends EHCacheSupport {
 
 		// Build resource pools — tiering order: heap > offheap > disk
 		ResourcePoolsBuilder pools = ResourcePoolsBuilder.newResourcePoolsBuilder();
-		if ( heapSizeMB > 0 ) {
-			pools = pools.heap( heapSizeMB, MemoryUnit.MB );
-		}
-		else {
-			pools = pools.heap( maxElementsInMemory, EntryUnit.ENTRIES );
-		}
+		pools = pools.heap( maxElementsInMemory, EntryUnit.ENTRIES );
 
 		if ( offheapSizeMB > 0 ) {
 			pools = pools.offheap( offheapSizeMB, MemoryUnit.MB );

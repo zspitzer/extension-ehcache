@@ -46,8 +46,7 @@ result = cacheGet( "key", "myCache" );
 | Setting | Default | Description |
 | ------- | ------- | ----------- |
 | `eternal` | `false` | Never expire entries (ignores TTL/TTI) |
-| `maxelementsinmemory` | `10000` | Max entries in the heap tier (ignored if `heapSizeMB > 0`) |
-| `heapSizeMB` | `0` | Size the heap tier in MB instead of entry count. `0` = use `maxelementsinmemory`. |
+| `maxelementsinmemory` | `10000` | Max entries in the heap tier |
 | `offheapSizeMB` | `0` | Off-heap (direct memory) tier size in MB. `0` = disabled. Sits between heap and disk. |
 | `timeToLiveSeconds` | `86400` | Default TTL in seconds |
 | `timeToIdleSeconds` | `86400` | Default TTI in seconds (see [TTI limitations](#tti-limitations)) |

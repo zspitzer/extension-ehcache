@@ -65,38 +65,6 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="ehcache" {
 
 		});
 
-		describe( "EHCache Byte-Sized Heap", function() {
-
-			beforeEach( function() {
-				cacheClear( "", "ehcacheHeapMB" );
-			});
-
-			it( "stores and retrieves with MB-based heap", function() {
-				cachePut( "hm_str", "hello", createTimespan( 0, 0, 5, 0 ), createTimespan( 0, 0, 5, 0 ), "ehcacheHeapMB" );
-				expect( cacheGet( "hm_str", "ehcacheHeapMB" ) ).toBe( "hello" );
-			});
-
-			it( "caches complex values with MB-based heap", function() {
-				var data = { name: "Zac", items: [ 1, 2, 3 ] };
-				cachePut( "hm_struct", data, createTimespan( 0, 0, 5, 0 ), createTimespan( 0, 0, 5, 0 ), "ehcacheHeapMB" );
-				var result = cacheGet( "hm_struct", "ehcacheHeapMB" );
-				expect( result.name ).toBe( "Zac" );
-				expect( result.items[ 2 ] ).toBe( 2 );
-			});
-
-			it( "evicts when heap MB limit is reached", function() {
-				// heapSizeMB=1, so stuffing in lots of large-ish values should evict
-				loop from="1" to="500" index="local.i" {
-					cachePut( "hm_big_#i#", repeatString( "x", 10000 ), createTimespan( 0, 0, 5, 0 ), createTimespan( 0, 0, 5, 0 ), "ehcacheHeapMB" );
-				}
-				// count should be less than 500 if eviction kicked in (1MB heap can't hold 500 * 10KB)
-				expect( cacheCount( "ehcacheHeapMB" ) ).toBeLT( 500 );
-				// but non-zero — entries are still there
-				expect( cacheCount( "ehcacheHeapMB" ) ).toBeGT( 0 );
-			});
-
-		});
-
 	}
 
 	private function createCaches() {
@@ -112,19 +80,6 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="ehcache" {
 					"overflowtodisk": "false",
 					"diskpersistent": "false",
 					"offheapSizeMB": "32"
-				},
-				default: ""
-			},
-			"ehcacheHeapMB": {
-				class: "org.lucee.extension.cache.eh.EHCache",
-				storage: false,
-				custom: {
-					"eternal": "false",
-					"heapSizeMB": "1",
-					"timeToIdleSeconds": "300",
-					"timeToLiveSeconds": "300",
-					"overflowtodisk": "false",
-					"diskpersistent": "false"
 				},
 				default: ""
 			}

@@ -2,8 +2,7 @@
 
 	<cfset fields=array(
 		field("Eternal","eternal","false",true,"Sets whether elements are eternal. If eternal, timeouts are ignored and the element is never expired","checkbox","true"),
-		field("Maximum elements in memory","maxelementsinmemory","10000",true,"Sets the maximum number of objects to be held in the heap tier. Ignored if Heap size (MB) is set.","text"),
-		field("Heap size (MB)","heapSizeMB","0",true,"Size the heap tier in megabytes instead of entry count. 0 = use element count above. Better for caches with variable-size entries.","text"),
+		field("Maximum elements in memory","maxelementsinmemory","10000",true,"Sets the maximum number of objects to be held in the heap tier","text"),
 		field("Off-heap size (MB)","offheapSizeMB","0",true,"Off-heap (direct memory) tier size in megabytes. 0 = disabled. Sits between heap and disk with zero GC pressure. Requires serialization.","text"),
 		field("Time to idle in seconds","timeToIdleSeconds","86400",true,"Sets the time to idle for an element before it expires. Is only used if the element is not eternal","time"),
 		field("Time to live in seconds","timeToLiveSeconds","86400",true,"Sets the timeout to live for an element before it expires. Is only used if the element is not eternal","time"),
@@ -20,14 +19,9 @@
 	<cffunction name="getClass" returntype="string">
 		<cfreturn "{class}">
 	</cffunction>
-	<!---
-	<cffunction name="getBundleName" returntype="string">
-		<cfreturn "{bundlename}">
+	<cffunction name="getMaven" returntype="string">
+		<cfreturn "{maven}">
 	</cffunction>
-	<cffunction name="getBundleVersion" returntype="string">
-		<cfreturn "{bundleversion}">
-	</cffunction>
-	--->
 
 	<cffunction name="getLabel" returntype="string">
 		<cfreturn "{label}">
