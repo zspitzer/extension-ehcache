@@ -4,11 +4,11 @@ All notable changes to the Lucee EHCache Extension.
 
 ## 3.11.1.0 (unreleased)
 
-Major rewrite — ehcache 2 to ehcache 3, Maven-native build, Lucee 7+ only.
+Major rewrite — ehcache 2 to ehcache 3, Maven-native build.
 
 ### Breaking changes
 
-- **Requires Lucee 7.0.4.21 / 7.1+** — uses Maven classloading for cache classes via the `maven:` manifest attribute. The maven cache provider support shipped in 7.1 and was backported to 7.0.4.21 ([LDEV-6270](https://luceeserver.atlassian.net/browse/LDEV-6270)).
+- **Requires Lucee 6.2.7.6+, 7.0.4.21+, or 7.1+** — uses Maven classloading for cache classes via the `maven:` manifest attribute. The maven cache provider support shipped in 7.1 and was backported to 7.0.4.21 and 6.2.7.6 ([LDEV-6270](https://luceeserver.atlassian.net/browse/LDEV-6270)).
 - **RMI distribution removed** — ehcache 3 dropped built-in RMI. All distributed config fields
   (automatic/manual discovery, listener, bootstrap, replication) are gone. Use the Redis cache
   extension for distributed caching.
@@ -26,6 +26,12 @@ Major rewrite — ehcache 2 to ehcache 3, Maven-native build, Lucee 7+ only.
 - Per-entry TTL/TTI via custom `ExpiryPolicy` (preserves Lucee's `cachePut()` timeout behaviour)
 - Cache event listener for metadata sidecar cleanup on expiry/eviction/removal
 - Java 11 minimum (was 8)
+- Off-heap tier via `offheapSizeMB` — direct-memory tier between heap and disk, zero GC pressure
+- Heap tier can be sized in MB via `heapSizeMB` instead of entry count (better for variable-size entries)
+- Native ehcache statistics via `DefaultStatisticsService` — replaces manual AtomicLong counters
+- `reportStatistics` flag surfaces cache-wide stats (hit/miss/get/put/remove/eviction/expiration counts, hit/miss percentages) in `cacheGetMetadata().custom`
+- `reportTierStatistics` flag adds a nested `tiers` struct (per-tier OnHeap/OffHeap/Disk breakdown: hits, misses, puts, removals, evictions, expirations, mappings, allocated/occupied bytes)
+- Fat "lite" lex build (`*.lite.lex`) bundles the ehcache JAR + patched POM but lets Lucee's maven resolver fetch slf4j/cache-api from Central
 
 ### Changed
 

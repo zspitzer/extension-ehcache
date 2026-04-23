@@ -10,7 +10,8 @@ target
 target/*
 *.lock
 *.DS_Store
-.vscode/launch.json
+.vscode/
+*.bat
 /test-output
 build/
 .flattened-pom.xml

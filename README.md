@@ -2,9 +2,9 @@
 
 [![Java CI](https://github.com/lucee/extension-ehcache/actions/workflows/main.yml/badge.svg)](https://github.com/lucee/extension-ehcache/actions/workflows/main.yml)
 
-Cache provider for Lucee using [Ehcache 3](https://www.ehcache.org/). Supports heap and disk tiers, per-entry TTL, eviction policies, and disk persistence.
+Cache provider for Lucee using [Ehcache 3](https://www.ehcache.org/). Supports heap / off-heap / disk tiers, per-entry TTL, eviction policies, disk persistence, and per-tier statistics.
 
-**Requires Lucee 7.0.4.21 or 7.1+** — uses maven-based classloading for cache classes ([LDEV-6270](https://luceeserver.atlassian.net/browse/LDEV-6270)).
+**Requires Lucee 6.2.7.6+, 7.0.4.21+, or 7.1+** — uses maven-based classloading for cache classes ([LDEV-6270](https://luceeserver.atlassian.net/browse/LDEV-6270)).
 
 ## Installation
 
@@ -46,14 +46,17 @@ result = cacheGet( "key", "myCache" );
 | Setting | Default | Description |
 | ------- | ------- | ----------- |
 | `eternal` | `false` | Never expire entries (ignores TTL/TTI) |
-| `maxelementsinmemory` | `10000` | Max entries in the heap tier |
+| `maxelementsinmemory` | `10000` | Max entries in the heap tier (ignored if `heapSizeMB > 0`) |
+| `heapSizeMB` | `0` | Size the heap tier in MB instead of entry count. `0` = use `maxelementsinmemory`. |
+| `offheapSizeMB` | `0` | Off-heap (direct memory) tier size in MB. `0` = disabled. Sits between heap and disk. |
 | `timeToLiveSeconds` | `86400` | Default TTL in seconds |
 | `timeToIdleSeconds` | `86400` | Default TTI in seconds (see [TTI limitations](#tti-limitations)) |
 | `overflowtodisk` | `true` | Overflow to a disk tier when heap is full |
 | `diskpersistent` | `true` | Persist disk tier across restarts |
 | `diskSizeMB` | `100` | Max disk tier size in MB |
 | `trackItemMetadata` | `true` | Track per-entry creation time and timespans |
-| `reportStatistics` | `false` | Include cache statistics in `cacheGetMetadata().custom` |
+| `reportStatistics` | `false` | Include cache-level statistics in `cacheGetMetadata().custom` |
+| `reportTierStatistics` | `false` | Include per-tier stats under a nested `tiers` struct. Requires `reportStatistics` for per-entry exposure. |
 
 ### Statistics
 
@@ -79,6 +82,29 @@ Stats are cumulative — they survive `cacheClear()` and are not reset until the
 var meta = cacheGetMetadata( "someKey", "myCache" );
 dump( meta.custom.hit_percentage );   // e.g. 96.15
 dump( meta.custom.eviction_count );   // e.g. 300
+```
+
+#### Per-tier statistics
+
+Set `reportTierStatistics` to `true` (in addition to `reportStatistics`) to surface a nested `tiers` struct with per-tier breakdowns. Tier keys appear based on your tier configuration — `OnHeap` always, `OffHeap` when `offheapSizeMB > 0`, `Disk` when `overflowtodisk=true`.
+
+| Key | Description |
+| --- | ----------- |
+| `hits` | Hits served from this tier |
+| `misses` | Misses against this tier |
+| `puts` | Puts into this tier |
+| `removals` | Entries removed from this tier |
+| `evictions` | Tier eviction events (capacity-driven) |
+| `expirations` | Tier expiration events (TTL/TTI) |
+| `mappings` | Current entry count in this tier |
+| `allocated_bytes` | Bytes allocated (omitted if tier doesn't report it) |
+| `occupied_bytes` | Bytes occupied (omitted if tier doesn't report it) |
+
+```cfml
+var meta = cacheGetMetadata( "someKey", "myCache" );
+dump( meta.custom.tiers.OnHeap.mappings );       // e.g. 847
+dump( meta.custom.tiers.OffHeap.occupied_bytes ); // e.g. 1048576
+dump( meta.custom.tiers.Disk.hits );              // e.g. 23
 ```
 
 ### trackItemMetadata
