@@ -9,6 +9,8 @@ import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -104,31 +106,49 @@ public class JavaObjectSerializer implements Serializer<Object> {
 		@Override
 		protected Class<?> resolveClass( ObjectStreamClass desc ) throws IOException, ClassNotFoundException {
 			String name = desc.getName();
+			List<Throwable> suppressed = null;
 
 			// 1. Try extension classloader (handles ehcache + Lucee + extension classes)
 			if ( cl != null ) {
 				try {
 					return Class.forName( name, false, cl );
 				}
-				catch ( ClassNotFoundException e ) {}
+				catch ( ClassNotFoundException e ) {
+					suppressed = new ArrayList<>();
+					suppressed.add( e );
+				}
 			}
 
 			// 2. Try Lucee's ClassUtil which searches all loaded classloaders
 			try {
 				return CFMLEngineFactory.getInstance().getClassUtil().loadClass( name );
 			}
-			catch ( Exception e ) {}
+			catch ( Exception e ) {
+				if ( suppressed == null ) suppressed = new ArrayList<>();
+				suppressed.add( e );
+			}
 
 			// 3. Try classloaders captured during serialization
 			for ( ClassLoader known : knownClassLoaders ) {
 				try {
 					return Class.forName( name, false, known );
 				}
-				catch ( ClassNotFoundException e ) {}
+				catch ( ClassNotFoundException e ) {
+					if ( suppressed == null ) suppressed = new ArrayList<>();
+					suppressed.add( e );
+				}
 			}
 
-			// 4. Last resort
-			return super.resolveClass( desc );
+			// 4. Last resort — attach per-tier failures to the eventual CNFE
+			try {
+				return super.resolveClass( desc );
+			}
+			catch ( ClassNotFoundException e ) {
+				if ( suppressed != null ) {
+					for ( Throwable s : suppressed ) e.addSuppressed( s );
+				}
+				throw e;
+			}
 		}
 	}
 }
