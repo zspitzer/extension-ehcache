@@ -128,7 +128,7 @@ public class EHCache extends EHCacheSupport {
 	public void init( Config config, String cacheName, Struct arguments ) throws IOException {
 		Log log = getLogger( config );
 		this.logger = log;
-		this.cacheName = cacheName = improveCacheName( cacheName );
+		this.cacheName = cacheName;
 
 		// Resolve ehcache disk storage directory
 		Resource dir = config.getConfigDir().getRealResource( "ehcache" );
@@ -157,7 +157,7 @@ public class EHCache extends EHCacheSupport {
 			}
 		}
 
-		log.debug( "ehcache", "Initialising cache [" + label( cacheName ) + "] with ehcache 3 (heap=" + maxElementsInMemory + " entries"
+		log.debug( "ehcache", "Initialising cache [" + cacheName + "] with ehcache 3 (heap=" + maxElementsInMemory + " entries"
 				+ ( offheapSizeMB > 0 ? ", offheap=" + offheapSizeMB + "MB" : "" )
 				+ ", disk=" + ( overflowToDisk ? diskSizeMB + "MB" : "off" ) + ", eternal=" + eternal + ")" );
 
@@ -206,7 +206,7 @@ public class EHCache extends EHCacheSupport {
 		}
 
 		mcm.addRef();
-		log.debug( "ehcache", "Cache [" + label( cacheName ) + "] initialised" );
+		log.debug( "ehcache", "Cache [" + cacheName + "] initialised" );
 	}
 
 	public void release() {
@@ -222,7 +222,7 @@ public class EHCache extends EHCacheSupport {
 			CFMLEngine engine = CFMLEngineFactory.getInstance();
 			Excepton exp = engine.getExceptionUtil();
 			throw exp.createPageRuntimeException(
-					exp.createApplicationException( "there is no cache with name [" + label( cacheName ) + "]" ) );
+					exp.createApplicationException( "there is no cache with name [" + cacheName + "]" ) );
 		}
 		return c;
 	}
@@ -402,20 +402,6 @@ public class EHCache extends EHCacheSupport {
 		int count = 0;
 		for ( org.ehcache.Cache.Entry<String, Object> ignored : cache ) count++;
 		return count;
-	}
-
-	// --- name helpers ---
-
-	private static String improveCacheName( String cacheName ) {
-		if ( cacheName.equalsIgnoreCase( "default" ) )
-			return "___default___";
-		return cacheName;
-	}
-
-	private static String label( String cacheName ) {
-		if ( cacheName.equalsIgnoreCase( "___default___" ) )
-			return "default";
-		return cacheName;
 	}
 
 }
