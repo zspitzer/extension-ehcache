@@ -48,7 +48,7 @@ public class EHCacheEntry implements CacheEntry {
 
 	@Override
 	public Date created() {
-		return meta != null ? new Date( meta.createdAt ) : null;
+		return meta != null ? new Date( meta.getCreatedAt() ) : null;
 	}
 
 	@Override
@@ -58,7 +58,7 @@ public class EHCacheEntry implements CacheEntry {
 
 	@Override
 	public Date lastModified() {
-		return meta != null ? new Date( meta.lastModified ) : created();
+		return created();
 	}
 
 	@Override
@@ -68,12 +68,12 @@ public class EHCacheEntry implements CacheEntry {
 
 	@Override
 	public long idleTimeSpan() {
-		return meta != null && meta.idleTimeMs != null ? meta.idleTimeMs : 0;
+		return meta != null && meta.getIdleTimeMs() != null ? meta.getIdleTimeMs() : 0;
 	}
 
 	@Override
 	public long liveTimeSpan() {
-		return meta != null && meta.liveTimeMs != null ? meta.liveTimeMs : 0;
+		return meta != null && meta.getLiveTimeMs() != null ? meta.getLiveTimeMs() : 0;
 	}
 
 	@Override
