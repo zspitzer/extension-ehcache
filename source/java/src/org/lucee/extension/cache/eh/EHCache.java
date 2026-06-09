@@ -362,13 +362,45 @@ public class EHCache extends EHCacheSupport {
 	@Override
 	public int clear() throws IOException {
 		org.ehcache.Cache<String, Object> cache = getCache();
-		// Count via iteration — metaSize() can be 0 when trackItemMetadata is off
-		int count = 0;
-		for ( org.ehcache.Cache.Entry<String, Object> ignored : cache ) {
-			count++;
-		}
+		int count = countEntries( cache );
 		cache.clear();
 		expiryPolicy.clearAll();
+		return count;
+	}
+
+	/**
+	 * Entry-count source for clear(), tried in cost order:
+	 *
+	 * 1. TierStatistics.getMappings() — max across tiers. In ehcache 3's tiered
+	 *    storage, lower tiers are authoritative (heap caches a subset of offheap
+	 *    caches a subset of disk), so the largest tier mapping count is the
+	 *    total entry count. Exact, O(tiers). Stats service is always created
+	 *    by ManagedCacheManager, so this path is normally available.
+	 * 2. expiryPolicy.metaSize() — when trackItemMetadata is enabled.
+	 *    Approximate during high churn because the cache event listener is
+	 *    asynchronous; evictions may not yet be reflected in entryMeta.
+	 * 3. Cache iteration — O(N), exact, but forces deserialization of disk-tier
+	 *    entries. Last resort only.
+	 */
+	private int countEntries( org.ehcache.Cache<String, Object> cache ) {
+		StatisticsService statsService = mcm.getStatisticsService();
+		if ( statsService != null ) {
+			try {
+				Map<String, TierStatistics> tiers = statsService.getCacheStatistics( cacheName ).getTierStatistics();
+				if ( tiers != null && !tiers.isEmpty() ) {
+					long max = -1;
+					for ( TierStatistics t : tiers.values() ) {
+						long m = t.getMappings();
+						if ( m > max ) max = m;
+					}
+					if ( max >= 0 ) return (int) max;
+				}
+			}
+			catch ( IllegalArgumentException ignored ) { /* cache not yet registered */ }
+		}
+		if ( trackItemMetadata ) return expiryPolicy.metaSize();
+		int count = 0;
+		for ( org.ehcache.Cache.Entry<String, Object> ignored : cache ) count++;
 		return count;
 	}
 
