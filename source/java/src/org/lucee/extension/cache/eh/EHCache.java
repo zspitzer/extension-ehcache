@@ -235,8 +235,7 @@ public class EHCache extends EHCacheSupport {
 			cache.remove( key );
 			return exists;
 		}
-		catch ( Throwable t ) {
-			if ( t instanceof ThreadDeath ) throw (ThreadDeath) t;
+		catch ( Exception e ) {
 			return false;
 		}
 	}
@@ -268,8 +267,7 @@ public class EHCache extends EHCacheSupport {
 				return new EHCacheEntry( key, value, meta, reportStatistics ? buildCacheStats() : null );
 			}
 		}
-		catch ( Throwable t ) {
-			if ( t instanceof ThreadDeath ) throw (ThreadDeath) t;
+		catch ( Exception e ) {
 		}
 		return defaultValue;
 	}

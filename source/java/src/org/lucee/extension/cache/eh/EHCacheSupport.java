@@ -92,8 +92,7 @@ public abstract class EHCacheSupport extends CacheSupport implements Cache {
 			EntryMeta meta = expiryPolicy.getEntryMeta( key );
 			return new EHCacheEntry( key, value, meta );
 		}
-		catch ( Throwable t ) {
-			if ( t instanceof ThreadDeath ) throw (ThreadDeath) t;
+		catch ( Exception e ) {
 			return defaultValue;
 		}
 	}
