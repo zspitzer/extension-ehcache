@@ -29,10 +29,23 @@ public class JavaObjectSerializer implements Serializer<Object> {
 
 	// Classloaders discovered during serialization — these can resolve classes
 	// (like JDBC driver types) that the extension's own classloader can't see.
+	// Strong references, accumulates for the cache lifetime. If a captured CL
+	// (e.g. a JDBC driver bundle) is unloaded, it stays referenced here until
+	// reset() is called (wired to EHCache.clear()), at which point the cache
+	// is already empty so the captured CLs no longer serve any purpose.
 	private final Set<ClassLoader> knownClassLoaders = ConcurrentHashMap.newKeySet();
 
 	public JavaObjectSerializer( ClassLoader classLoader ) {
 		this.classLoader = classLoader;
+	}
+
+	/**
+	 * Drop the captured classloader set. Called from EHCache.clear() — once
+	 * the cache contents are gone, the captured CLs have nothing to deserialize
+	 * and can be released for GC.
+	 */
+	public void reset() {
+		knownClassLoaders.clear();
 	}
 
 	@Override

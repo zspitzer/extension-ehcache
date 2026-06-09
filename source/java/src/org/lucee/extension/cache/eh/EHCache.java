@@ -119,6 +119,7 @@ public class EHCache extends EHCacheSupport {
 	private boolean reportStatistics;
 	private boolean reportTierStatistics;
 	private ManagedCacheManager mcm;
+	private JavaObjectSerializer valueSerializer;
 
 	public void init( String cacheName, Struct arguments ) throws IOException {
 		init( CFMLEngineFactory.getInstance().getThreadConfig(), cacheName, arguments );
@@ -181,7 +182,7 @@ public class EHCache extends EHCacheSupport {
 		}
 
 		// Build cache configuration
-		JavaObjectSerializer valueSerializer = new JavaObjectSerializer( getClass().getClassLoader() );
+		this.valueSerializer = new JavaObjectSerializer( getClass().getClassLoader() );
 		CacheConfigurationBuilder<String, Object> cacheConfig = CacheConfigurationBuilder
 				.newCacheConfigurationBuilder( String.class, Object.class, pools )
 				.withExpiry( expiryPolicy )
@@ -365,6 +366,7 @@ public class EHCache extends EHCacheSupport {
 		int count = countEntries( cache );
 		cache.clear();
 		expiryPolicy.clearAll();
+		if ( valueSerializer != null ) valueSerializer.reset();
 		return count;
 	}
 
