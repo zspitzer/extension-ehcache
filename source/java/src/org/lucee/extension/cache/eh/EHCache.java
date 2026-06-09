@@ -200,7 +200,13 @@ public class EHCache extends EHCacheSupport {
 			);
 		}
 
-		// Create the cache (or retrieve if already exists from disk persistence)
+		// Create the cache (or retrieve if already exists from disk persistence).
+		// The get-then-create pattern is non-atomic — ehcache 3's createCache throws
+		// IllegalArgumentException if the cache already exists. Concurrent init()
+		// calls for the same name would race here, but Lucee's CacheConnectionImpl
+		// already serializes cache instantiation via double-checked locking on the
+		// class definition (see CacheConnectionImpl.getInstance), so this isn't
+		// reachable from the normal Lucee lifecycle.
 		Cache<String, Object> existing = cacheManager.getCache( cacheName, String.class, Object.class );
 		if ( existing == null ) {
 			cacheManager.createCache( cacheName, cacheConfig );
