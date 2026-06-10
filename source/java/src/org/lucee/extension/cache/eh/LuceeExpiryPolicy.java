@@ -25,6 +25,11 @@ public class LuceeExpiryPolicy implements ExpiryPolicy<String, Object> {
 		private final long createdAt;
 		private final Long idleTimeMs;   // null = use cache default
 		private final Long liveTimeMs;   // null = use cache default
+		// Lazy Duration views — non-volatile is fine because Duration is immutable,
+		// so a benign double-create on race is harmless and saves the volatile overhead.
+		// Put-only entries (set then evict, never read) skip allocation entirely.
+		private Duration idleTime;
+		private Duration liveTime;
 
 		public EntryMeta( Long idleTimeMs, Long liveTimeMs ) {
 			this.createdAt = System.currentTimeMillis();
@@ -35,6 +40,26 @@ public class LuceeExpiryPolicy implements ExpiryPolicy<String, Object> {
 		public long getCreatedAt()  { return createdAt; }
 		public Long getIdleTimeMs() { return idleTimeMs; }
 		public Long getLiveTimeMs() { return liveTimeMs; }
+
+		public Duration getIdleTime() {
+			Duration d = idleTime;
+			if ( d != null ) return d;
+			Long ms = idleTimeMs;
+			if ( ms == null ) return null;
+			d = Duration.ofMillis( ms );
+			idleTime = d;
+			return d;
+		}
+
+		public Duration getLiveTime() {
+			Duration d = liveTime;
+			if ( d != null ) return d;
+			Long ms = liveTimeMs;
+			if ( ms == null ) return null;
+			d = Duration.ofMillis( ms );
+			liveTime = d;
+			return d;
+		}
 	}
 
 	public LuceeExpiryPolicy( boolean eternal, long timeToLiveSeconds, long timeToIdleSeconds ) {
@@ -84,8 +109,8 @@ public class LuceeExpiryPolicy implements ExpiryPolicy<String, Object> {
 		if ( eternal ) return INFINITE;
 
 		EntryMeta meta = entryMeta.get( key );
-		if ( meta != null && meta.getLiveTimeMs() != null ) {
-			return Duration.ofMillis( meta.getLiveTimeMs() );
+		if ( meta != null && meta.getLiveTime() != null ) {
+			return meta.getLiveTime();
 		}
 		return defaultTTL;
 	}
@@ -97,8 +122,8 @@ public class LuceeExpiryPolicy implements ExpiryPolicy<String, Object> {
 		EntryMeta meta = entryMeta.get( key );
 		Duration tti = null;
 
-		if ( meta != null && meta.getIdleTimeMs() != null ) {
-			tti = Duration.ofMillis( meta.getIdleTimeMs() );
+		if ( meta != null && meta.getIdleTime() != null ) {
+			tti = meta.getIdleTime();
 		}
 		else if ( defaultTTI != null ) {
 			tti = defaultTTI;
@@ -117,8 +142,9 @@ public class LuceeExpiryPolicy implements ExpiryPolicy<String, Object> {
 			long elapsed = System.currentTimeMillis() - meta.getCreatedAt();
 			long remainingMs = ttlMs - elapsed;
 			if ( remainingMs <= 0 ) return Duration.ZERO;
-			Duration remaining = Duration.ofMillis( remainingMs );
-			return tti.compareTo( remaining ) < 0 ? tti : remaining;
+			// Compare in millis to skip Duration allocation when tti wins
+			if ( tti.toMillis() <= remainingMs ) return tti;
+			return Duration.ofMillis( remainingMs );
 		}
 
 		return tti;
