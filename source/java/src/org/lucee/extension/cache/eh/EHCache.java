@@ -110,7 +110,6 @@ public class EHCache extends EHCacheSupport {
 	private static final ConcurrentHashMap<String, ManagedCacheManager> managers = new ConcurrentHashMap<>();
 
 	private String cacheName;
-	private boolean trackItemMetadata;
 	private boolean reportStatistics;
 	private boolean reportTierStatistics;
 	private ManagedCacheManager mcm;
